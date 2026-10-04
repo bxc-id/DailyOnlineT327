@@ -35,7 +35,7 @@
         .input-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ios-gray); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
         .ios-input { width: 100%; background: var(--ios-bg); border: 2px solid transparent; border-radius: 12px; padding: 14px; font-size: 16px; color: var(--ios-text); outline: none; transition: 0.3s; box-sizing: border-box; }
         .ios-input:focus { border-color: var(--ios-blue); background: #fff; }
-        .ios-input:read-only { opacity: 0.7; }
+        .ios-input:read-only, .ios-input:disabled { opacity: 0.7; background: #e5e5ea; cursor: not-allowed; }
         
         .chip-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .ios-chip { background: #e5e5ea; border: none; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--ios-text); cursor: pointer; transition: 0.2s; }
@@ -250,11 +250,21 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5eJ6wXBpu-L0lYH0TuG5Noc_ethgq5KrexGkOBA3GbO8QEcoIswrxsnd2VLPPWxzdmA/exec'; 
         
         let currentPajak = 0;
-        let todayStr = new Date().toISOString().split('T')[0];
+        
+        // FUNGSI HELPER UNTUK MENDAPATKAN TANGGAL FORMAT YYYY-MM-DD BERDASARKAN WAKTU LOKAL
+        function getLocalDateString(d = new Date()) {
+            let year = d.getFullYear();
+            let month = String(d.getMonth() + 1).padStart(2, '0');
+            let day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let todayStr = getLocalDateString();
         let activeChannels = []; 
         let deferredPrompt = null;
 
         window.onload = () => {
+            todayStr = getLocalDateString();
             document.getElementById('inputDate').value = todayStr;
             document.getElementById('monthFilter').value = todayStr.substring(0, 7);
 
@@ -576,6 +586,7 @@
                 } else if (data.status === "success") {
                     alertIOS("Sukses", data.message, "success");
                     btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                    todayStr = getLocalDateString();
                     resetForm();
                     document.getElementById('inputDate').value = todayStr;
                 } else {
@@ -664,7 +675,6 @@
                 cancelButtonColor: '#8e8e93'
             }).then((res) => {
                 if (res.isConfirmed) {
-                    document.getElementById('inputDate').value = dateStr;
                     fillFormWithExistingData(rowData);
                     document.getElementById('salesInput').value = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser"); 
                     switchTab('Form');
@@ -688,6 +698,7 @@
                                     loadHistory();
                                     if(document.getElementById('inputDate').value === dateStr) { 
                                         resetForm(); 
+                                        todayStr = getLocalDateString();
                                         document.getElementById('inputDate').value = todayStr;
                                     }
                                 } else {
@@ -701,7 +712,14 @@
         }
 
         function fillFormWithExistingData(rowData) {
+            let savedDate = rowData[1] || document.getElementById('inputDate').value;
             resetForm();
+            
+            // Set tanggal dan KUNCI input tanggal agar tidak dapat diedit saat mode edit
+            let inputDateEl = document.getElementById('inputDate');
+            inputDateEl.value = savedDate;
+            inputDateEl.disabled = true;
+
             document.getElementById('internalView').value = (rowData[4]||0) > 0 ? (rowData[4]||0).toLocaleString('id-ID') : "";
             document.getElementById('customerView').value = (rowData[5]||0) > 0 ? (rowData[5]||0).toLocaleString('id-ID') : "";
             document.getElementById('totalView').value = (rowData[6]||0) > 0 ? (rowData[6]||0).toLocaleString('id-ID') : "";
@@ -730,6 +748,10 @@
             document.getElementById('totalView').value = "";
             document.getElementById('totalChats').value = "";
             document.getElementById('salesInput').value = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser");
+            
+            // Buka kunci input tanggal kembali
+            let inputDateEl = document.getElementById('inputDate');
+            inputDateEl.disabled = false;
         }
 
         function saveAdmin() {
