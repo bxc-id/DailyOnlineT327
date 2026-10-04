@@ -31,8 +31,8 @@
         /* WRAPPER AGAR TAMPILAN RESPONSIVE SEPERTI APLIKASI MOBILE */
         .app-wrapper {
             width: 100%;
-            max-width: 550px; /* Batas maksimal lebar untuk tampilan Mobile */
-            min-height: 100vh;
+            max-width: 600px; /* Batas maksimal lebar untuk tampilan Mobile diubah ke 600px */
+            min-height: 791px; /* Minimal tinggi diset ke 791px sesuai permintaan */
             background-color: var(--ios-bg);
             position: relative;
             box-shadow: 0 0 20px rgba(0,0,0,0.08);
@@ -45,31 +45,34 @@
         .app-header { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
         
         .ios-card { background: var(--ios-card); border-radius: 16px; padding: 20px; margin: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 13px; font-weight: 600; color: var(--ios-gray); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
-        .ios-input { width: 100%; background: var(--ios-bg); border: 2px solid transparent; border-radius: 12px; padding: 14px; font-size: 16px; color: var(--ios-text); outline: none; transition: 0.3s; box-sizing: border-box; }
+        .input-group { margin-bottom: 15px; width: 100%; box-sizing: border-box; }
+        .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--ios-gray); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+        
+        /* Penyesuaian agar tidak terpotong di HP */
+        .ios-input { width: 100%; background: var(--ios-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 14px; font-size: 15px; color: var(--ios-text); outline: none; transition: 0.3s; box-sizing: border-box; }
         .ios-input:focus { border-color: var(--ios-blue); background: #fff; }
         .ios-input:read-only, .ios-input:disabled { opacity: 0.7; background: #e5e5ea; cursor: not-allowed; }
         
-        /* RESPONSIVE FLEX UNTUK INPUT GROUP DI HP KECIL */
-        .flex-row { display: flex; gap: 15px; }
+        /* RESPONSIVE FLEX UNTUK INPUT GROUP DI HP KECIL (DIPERBAIKI: TETAP 2 KOTAK 1 BARIS) */
+        .flex-row { display: flex; flex-direction: row; gap: 12px; }
         @media (max-width: 480px) {
-            .flex-row { flex-direction: column; gap: 0; }
+            .flex-row { gap: 8px; } /* Sedikit dirapatkan gap-nya agar muat di HP kecil tanpa numpuk ke bawah */
         }
 
         .chip-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .ios-chip { background: #e5e5ea; border: none; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--ios-text); cursor: pointer; transition: 0.2s; }
         .ios-chip.active { background: var(--ios-blue); color: white; transform: scale(1.05); }
 
-        .channel-block { background: #fafafa; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--ios-blue); animation: fadeIn 0.3s ease-in-out; }
+        .channel-block { background: #fafafa; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--ios-blue); animation: fadeIn 0.3s ease-in-out; box-sizing: border-box;}
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .ios-btn { background: var(--ios-blue); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        /* Penyesuaian padding teks tombol agar aman sejajar 2 kotak di HP */
+        .ios-btn { background: var(--ios-blue); color: white; border: none; width: 100%; padding: 14px 10px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; box-sizing: border-box; text-align: center; }
         .ios-btn:active { transform: scale(0.98); opacity: 0.9; }
         .ios-btn-warning { background: #ff9500; }
         .ios-btn-success { background: #34c759; }
 
-        .tab-bar { position: fixed; bottom: 0; width: 100%; max-width: 550px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
+        .tab-bar { position: fixed; bottom: 0; width: 100%; max-width: 600px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
         .tab-item { text-align: center; color: var(--ios-gray); font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; width: 25%; }
         .tab-item i { font-size: 22px; display: block; margin-bottom: 3px; }
         .tab-item.active { color: var(--ios-blue); }
@@ -254,22 +257,22 @@
                     </div>
 
                     <div class="flex-row">
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group" style="flex: 1; min-width: 0;">
                             <label>Internal View <span style="color:red">*</span></label>
                             <input type="text" inputmode="numeric" id="internalView" class="ios-input" oninput="formatRibuan(this); calcTotalView()" required>
                         </div>
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group" style="flex: 1; min-width: 0;">
                             <label>Customer View <span style="color:red">*</span></label>
                             <input type="text" inputmode="numeric" id="customerView" class="ios-input" oninput="formatRibuan(this); calcTotalView()" required>
                         </div>
                     </div>
                     
                     <div class="flex-row">
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group" style="flex: 1; min-width: 0;">
                             <label>Total View (Auto)</label>
                             <input type="text" id="totalView" class="ios-input" readonly>
                         </div>
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group" style="flex: 1; min-width: 0;">
                             <label>Total Chats <span style="color:red">*</span></label>
                             <input type="text" inputmode="numeric" id="totalChats" class="ios-input" oninput="formatRibuan(this)" required>
                         </div>
@@ -750,11 +753,11 @@
             div.innerHTML = `
                 <div style="font-weight:700; color:var(--ios-blue); margin-bottom:10px;">➔ Data ${channel}</div>
                 <div class="flex-row">
-                    <div class="input-group" style="flex:1;">
+                    <div class="input-group" style="flex:1; min-width:0;">
                         <label>Trx</label>
                         <input type="text" inputmode="numeric" id="trx_${safeId}" class="ios-input" oninput="formatRibuan(this)" required>
                     </div>
-                    <div class="input-group" style="flex:1;">
+                    <div class="input-group" style="flex:1; min-width:0;">
                         <label>Sales</label>
                         <input type="text" inputmode="numeric" id="sales_${safeId}" class="ios-input" oninput="formatRibuan(this); calcNetSales('${safeId}')" required>
                     </div>
