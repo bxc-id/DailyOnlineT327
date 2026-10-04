@@ -475,7 +475,8 @@
 
         function calcNetSales(safeId) {
             let sales = getInt(document.getElementById(`sales_${safeId}`).value);
-            let net = sales - (sales * (currentPajak / 100));
+            // RUMUS DIPERBAIKI: Menggunakan perhitungan Pajak Inklusif (Sales / (1 + Pajak))
+            let net = sales / (1 + (currentPajak / 100));
             document.getElementById(`net_${safeId}`).value = Math.round(net).toLocaleString('id-ID');
         }
 
