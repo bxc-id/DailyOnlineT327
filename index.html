@@ -174,6 +174,7 @@
                 align-items: center;
                 gap: 15px;
                 transition: all 0.3s ease;
+                box-sizing: border-box; /* FIX AGAR KOTAK BIRU TIDAK OFFSIDE */
             }
             .tab-item:hover { background: rgba(0, 122, 255, 0.08); }
             .tab-item.active { background: rgba(0, 122, 255, 0.12); color: var(--ios-blue); }
@@ -471,7 +472,7 @@
                 if (isEditMode) {
                     if (btnReset) {
                         btnReset.innerText = "Batal Edit";
-                        btnReset.style.background = "#8e8e93";
+                        btnReset.style.background = "#ff3b30";
                     }
                     document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
                 } else {
@@ -981,7 +982,7 @@
             let btnReset = document.getElementById('btnResetData');
             if(btnReset) {
                 btnReset.innerText = "Batal Edit";
-                btnReset.style.background = "#8e8e93";
+                btnReset.style.background = "#ff3b30";
             }
             document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
 
