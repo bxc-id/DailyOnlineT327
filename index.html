@@ -23,8 +23,22 @@
         }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-            background-color: var(--ios-bg); color: var(--ios-text); margin: 0; padding-bottom: 80px; 
+            background-color: #d1d1d6; /* Warna bg luar jika di buka di PC/Desktop */
+            color: var(--ios-text); margin: 0; padding: 0;
+            display: flex; justify-content: center;
         }
+        
+        /* WRAPPER AGAR TAMPILAN RESPONSIVE SEPERTI APLIKASI MOBILE */
+        .app-wrapper {
+            width: 100%;
+            max-width: 550px; /* Batas maksimal lebar untuk tampilan Desktop/Tablet */
+            min-height: 100vh;
+            background-color: var(--ios-bg);
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            padding-bottom: 80px; /* Spacer untuk bottom navigation */
+        }
+
         .hidden { display: none !important; }
         
         h4 { font-weight: 700; font-size: 24px; margin-bottom: 5px; margin-top: 0; }
@@ -37,6 +51,12 @@
         .ios-input:focus { border-color: var(--ios-blue); background: #fff; }
         .ios-input:read-only, .ios-input:disabled { opacity: 0.7; background: #e5e5ea; cursor: not-allowed; }
         
+        /* RESPONSIVE FLEX UNTUK INPUT GROUP DI HP KECIL */
+        .flex-row { display: flex; gap: 15px; }
+        @media (max-width: 480px) {
+            .flex-row { flex-direction: column; gap: 0; }
+        }
+
         .chip-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .ios-chip { background: #e5e5ea; border: none; padding: 10px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--ios-text); cursor: pointer; transition: 0.2s; }
         .ios-chip.active { background: var(--ios-blue); color: white; transform: scale(1.05); }
@@ -44,13 +64,13 @@
         .channel-block { background: #fafafa; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--ios-blue); animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .ios-btn { background: var(--ios-blue); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .ios-btn { background: var(--ios-blue); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .ios-btn:active { transform: scale(0.98); opacity: 0.9; }
         .ios-btn-warning { background: #ff9500; }
         .ios-btn-success { background: #34c759; }
 
-        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-around; padding: 12px 0 25px 0; z-index: 1000; }
-        .tab-item { text-align: center; color: var(--ios-gray); font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; }
+        .tab-bar { position: fixed; bottom: 0; width: 100%; max-width: 550px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
+        .tab-item { text-align: center; color: var(--ios-gray); font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; width: 25%; }
         .tab-item i { font-size: 22px; display: block; margin-bottom: 3px; }
         .tab-item.active { color: var(--ios-blue); }
 
@@ -79,10 +99,12 @@
 </head>
 <body>
 
+<div class="app-wrapper">
+
     <!-- SCREEN: CEK SESSION LOADING -->
     <div id="sessionLoading" class="hidden">
         <div class="spinner"></div>
-        <h4 style="font-size: 18px; color: var(--ios-gray);">Memverifikasi Sesi Keamanan...</h4>
+        <h4 style="font-size: 18px; color: var(--ios-gray); margin-top: 20px;">Memverifikasi Sesi Keamanan...</h4>
     </div>
 
     <!-- SECTION: LOGIN -->
@@ -113,7 +135,7 @@
             <div style="display:flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-size: 12px; font-weight: 800; color: var(--ios-gray); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Daily Report Online</div>
-                    <h4>Halo, <span id="staffName" style="color: var(--ios-blue);"></span> 👋</h4>
+                    <h4 style="font-size: 20px;">Halo, <span id="staffName" style="color: var(--ios-blue);"></span> 👋</h4>
                 </div>
                 <button onclick="refreshData()" class="refresh-btn" id="btnRefresh" title="Refresh Data">
                     <svg id="refreshIcon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ios-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -121,7 +143,7 @@
                     </svg>
                 </button>
             </div>
-            <div style="font-size: 12px; color: var(--ios-gray); margin-top: 5px;">
+            <div style="font-size: 13px; color: var(--ios-gray); margin-top: 8px;">
                 Pajak: <b id="infoPajak">0</b>% | Target: Rp <b id="infoTarget">0</b>
             </div>
         </div>
@@ -136,7 +158,7 @@
                         <input type="date" id="inputDate" class="ios-input" onchange="checkDate()" required>
                     </div>
 
-                    <div style="display: flex; gap: 15px;">
+                    <div class="flex-row">
                         <div class="input-group" style="flex: 1;">
                             <label>Internal View <span style="color:red">*</span></label>
                             <input type="text" inputmode="numeric" id="internalView" class="ios-input" oninput="formatRibuan(this); calcTotalView()" required>
@@ -147,7 +169,7 @@
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 15px;">
+                    <div class="flex-row">
                         <div class="input-group" style="flex: 1;">
                             <label>Total View (Auto)</label>
                             <input type="text" id="totalView" class="ios-input" readonly>
@@ -179,8 +201,9 @@
 
                     <div id="multiChannelForms"></div>
 
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button type="button" id="btnCancelEdit" onclick="cancelEdit()" class="ios-btn hidden" style="background: #8e8e93; flex: 1;">Batal Edit</button>
+                    <!-- TOMBOL ACTION FORM -->
+                    <div class="flex-row" style="margin-top: 25px;">
+                        <button type="button" id="btnResetData" onclick="handleReset()" class="ios-btn" style="background: #ff3b30; flex: 1;">Kosongkan Form</button>
                         <button type="submit" id="btnSubmit" class="ios-btn" style="flex: 1;">Simpan & Kalkulasi</button>
                     </div>
                 </form>
@@ -232,7 +255,7 @@
         </div>
 
         <!-- FOOTER / WATERMARK -->
-        <div style="text-align: center; margin: 35px 0 110px 0; font-size: 12px; color: var(--ios-gray); line-height: 1.5;">
+        <div style="text-align: center; margin: 35px 0 35px 0; font-size: 12px; color: var(--ios-gray); line-height: 1.5;">
             <b>Creator & Dev : Alfian Ananda (162331)</b><br>
             &copy; Copyright 2026
         </div>
@@ -246,6 +269,8 @@
         </div>
 
     </div>
+
+</div> <!-- PENUTUP APP WRAPPER -->
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
@@ -348,11 +373,18 @@
                     });
                 }
 
+                let btnReset = document.getElementById('btnResetData');
                 if (isEditMode) {
-                    document.getElementById('btnCancelEdit').classList.remove('hidden');
+                    if (btnReset) {
+                        btnReset.innerText = "Batal Edit";
+                        btnReset.style.background = "#8e8e93";
+                    }
                     document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
                 } else {
-                    document.getElementById('btnCancelEdit').classList.add('hidden');
+                    if (btnReset) {
+                        btnReset.innerText = "Kosongkan Form";
+                        btnReset.style.background = "#ff3b30";
+                    }
                     document.getElementById('btnSubmit').innerText = "Simpan & Kalkulasi";
                 }
 
@@ -622,7 +654,7 @@
             
             div.innerHTML = `
                 <div style="font-weight:700; color:var(--ios-blue); margin-bottom:10px;">➔ Data ${channel}</div>
-                <div style="display:flex; gap:10px;">
+                <div class="flex-row">
                     <div class="input-group" style="flex:1;">
                         <label>Trx</label>
                         <input type="text" inputmode="numeric" id="trx_${safeId}" class="ios-input" oninput="formatRibuan(this)" required>
@@ -825,7 +857,7 @@
                                     alertIOS("Terhapus", d.message, "success");
                                     loadHistory();
                                     if(document.getElementById('inputDate').value === dateStr) { 
-                                        cancelEdit();
+                                        handleReset(true); // reset silently if deleting the same date
                                     }
                                 } else {
                                     alertIOS("Gagal", d.message, "error");
@@ -842,7 +874,11 @@
             resetForm();
             
             isEditMode = true;
-            document.getElementById('btnCancelEdit').classList.remove('hidden');
+            let btnReset = document.getElementById('btnResetData');
+            if(btnReset) {
+                btnReset.innerText = "Batal Edit";
+                btnReset.style.background = "#8e8e93";
+            }
             document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
 
             // Set tanggal dan KUNCI input tanggal agar tidak dapat diedit saat mode edit
@@ -871,7 +907,33 @@
             saveDraft();
         }
 
-        function cancelEdit() {
+        // Fungsi gabungan Batal Edit & Reset Form
+        function handleReset(silent = false) {
+            if (silent) {
+                executeReset();
+                return;
+            }
+
+            let titleStr = isEditMode ? 'Batal Edit Data?' : 'Kosongkan Form?';
+            let textStr = isEditMode ? 'Kembali ke form input data baru?' : 'Semua data yang sudah Anda ketik akan dihapus.';
+            
+            Swal.fire({
+                title: titleStr,
+                text: textStr,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya',
+                cancelButtonText: 'Tidak',
+                confirmButtonColor: '#ff3b30',
+                cancelButtonColor: '#8e8e93'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeReset();
+                }
+            });
+        }
+
+        function executeReset() {
             clearDraft();
             resetForm();
             todayStr = getLocalDateString();
@@ -894,7 +956,12 @@
             inputDateEl.disabled = false;
 
             isEditMode = false;
-            document.getElementById('btnCancelEdit').classList.add('hidden');
+            let btnReset = document.getElementById('btnResetData');
+            if(btnReset) {
+                btnReset.innerText = "Kosongkan Form";
+                btnReset.style.background = "#ff3b30";
+            }
+            
             document.getElementById('btnSubmit').innerText = "Simpan & Kalkulasi";
             document.getElementById('btnSubmit').disabled = false;
         }
