@@ -1,4 +1,4 @@
-const CACHE_NAME = 'daily-report-pwa-v1';
+const CACHE_NAME = 'daily-report-pwa-v2';
 const urlsToCache = [
   './',
   './index.html', // Sesuaikan jika nama file Anda index (9).html, namun sangat disarankan untuk merubah nama file utama menjadi index.html agar lebih rapi.
