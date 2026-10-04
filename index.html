@@ -82,7 +82,7 @@
     <!-- SCREEN: CEK SESSION LOADING -->
     <div id="sessionLoading" class="hidden">
         <div class="spinner"></div>
-        <h4 style="font-size: 18px; color: var(--ios-gray);">Memverifikasi Sesi...</h4>
+        <h4 style="font-size: 18px; color: var(--ios-gray);">Memverifikasi Sesi Keamanan...</h4>
     </div>
 
     <!-- SECTION: LOGIN -->
@@ -220,8 +220,8 @@
             <!-- SECTION KELOLA STAFF -->
             <div class="ios-card" style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4 style="margin: 0; font-size: 18px; color: var(--ios-blue);"><i class="bi bi-people-fill"></i> Kelola Staff</h4>
-                    <button onclick="showAddStaffModal()" class="ios-btn" style="width: auto; padding: 8px 14px; font-size: 13px;">+ Staff Baru</button>
+                    <h4 style="margin: 0; font-size: 18px; color: var(--ios-blue);"><i class="bi bi-people-fill"></i> Kelola Pengguna</h4>
+                    <button onclick="showAddStaffModal()" class="ios-btn" style="width: auto; padding: 8px 14px; font-size: 13px;">+ User Baru</button>
                 </div>
                 <div id="staffListContainer"></div>
             </div>
@@ -247,7 +247,7 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         // PASTIKAN GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHMmcxaCerX1eO68vPkU9WJ1WAsruHy1407LqUBt9FrctvcWnv-s0U8Z_AtzTFbKjaGQ/exec'; 
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5eJ6wXBpu-L0lYH0TuG5Noc_ethgq5KrexGkOBA3GbO8QEcoIswrxsnd2VLPPWxzdmA/exec'; 
         
         let currentPajak = 0;
         let todayStr = new Date().toISOString().split('T')[0];
@@ -269,7 +269,7 @@
                 document.getElementById('pwaInstallContainer').classList.add('hidden');
                 document.getElementById('sessionLoading').classList.remove('hidden');
 
-                // 1. Cek Timeout 12 Jam secara Lokal terlebih dahulu
+                // 1. Cek Timeout 12 Jam secara Lokal
                 const loginTime = localStorage.getItem("loginTime");
                 const now = new Date().getTime();
                 const twelveHoursInMs = 12 * 60 * 60 * 1000;
@@ -279,24 +279,23 @@
                     return;
                 }
 
-                // 2. Verifikasi Token Multi-Device di Server
+                // 2. Verifikasi Token & Device di Server
                 apiCall({ action: "checkSession", username: user, sessionToken: token })
                 .then(res => {
                     document.getElementById('sessionLoading').classList.add('hidden');
                     
                     if (res.status === "valid") {
-                        showApp(fullName, role);
+                        if (res.role) localStorage.setItem("userRole", res.role);
+                        showApp(fullName, res.role || role);
                     } else {
                         let msg = res.reason === "device" ? "Akun ini telah login di perangkat lain." : "Sesi Anda telah habis.";
                         handleAutoLogout(msg);
                     }
                 }).catch(e => {
-                    // Jika jaringan offline/error server, abaikan pemutusan sesi dan izinkan masuk sementara
                     document.getElementById('sessionLoading').classList.add('hidden');
                     showApp(fullName, role);
                 });
             } else {
-                // Biarkan di layar login jika memang tidak ada data tersimpan
                 document.getElementById('loginSection').classList.remove('hidden');
             }
         };
@@ -306,7 +305,11 @@
             document.getElementById('pwaInstallContainer').classList.add('hidden');
             document.getElementById('staffName').innerText = fullName;
             document.getElementById('salesInput').value = fullName; 
-            if (role === 'Admin') document.getElementById('navAdmin').classList.remove('hidden');
+            
+            // Tampilkan Tab Admin untuk Admin dan Super Admin
+            if (role === 'Admin' || role === 'Super Admin') {
+                document.getElementById('navAdmin').classList.remove('hidden');
+            }
             initData(todayStr);
         }
 
@@ -325,6 +328,14 @@
         }
 
         function apiCall(payload) {
+            // Otomatis menyertakan data autentikasi untuk pengiriman backend yang aman
+            if (!payload.username && localStorage.getItem("loggedInUser")) {
+                payload.username = localStorage.getItem("loggedInUser");
+            }
+            if (!payload.sessionToken && localStorage.getItem("sessionToken")) {
+                payload.sessionToken = localStorage.getItem("sessionToken");
+            }
+
             return fetch(SCRIPT_URL, {
                 redirect: "follow",
                 method: 'POST',
@@ -362,8 +373,8 @@
                     localStorage.setItem("loggedInUser", data.user);
                     localStorage.setItem("userRole", data.role);
                     localStorage.setItem("userFullName", data.fullName);
-                    localStorage.setItem("sessionToken", data.sessionToken); // Simpan token baru
-                    localStorage.setItem("loginTime", new Date().getTime().toString()); // Simpan waktu awal
+                    localStorage.setItem("sessionToken", data.sessionToken);
+                    localStorage.setItem("loginTime", new Date().getTime().toString());
                     location.reload();
                 } else {
                     alertIOS("Gagal Login", data.message, "error");
@@ -495,7 +506,6 @@
 
         function calcNetSales(safeId) {
             let sales = getInt(document.getElementById(`sales_${safeId}`).value);
-            // RUMUS DIPERBAIKI: Menggunakan perhitungan Pajak Inklusif (Sales / (1 + Pajak))
             let net = sales / (1 + (currentPajak / 100));
             document.getElementById(`net_${safeId}`).value = Math.round(net).toLocaleString('id-ID');
         }
@@ -584,9 +594,9 @@
             
             let filterMonth = document.getElementById('monthFilter').value; 
             
-            apiCall({ action: "getHistory", username: localStorage.getItem("loggedInUser"), month: filterMonth })
+            apiCall({ action: "getHistory", month: filterMonth })
             .then(data => {
-                if(data.data.length === 0) {
+                if(!data.data || data.data.length === 0) {
                     container.innerHTML = "<div style='padding:20px;text-align:center;color:gray;'>Belum ada riwayat pada bulan ini.</div>"; return;
                 }
                 
@@ -670,7 +680,6 @@
                         if(delRes.isConfirmed) {
                             apiCall({ 
                                 action: "delete", 
-                                username: localStorage.getItem("loggedInUser"), 
                                 fullName: localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser"),
                                 date: dateStr 
                             }).then(d => {
@@ -727,20 +736,20 @@
             let btn = document.getElementById('btnSaveAdmin'); btn.innerText = "Menyimpan...";
             let p = document.getElementById('setPajak').value;
             let t = getInt(document.getElementById('setTarget').value);
-            apiCall({ action: "updateSettings", username: localStorage.getItem("loggedInUser"), pajak: p, target: t })
+            apiCall({ action: "updateSettings", pajak: p, target: t })
             .then(data => { alertIOS("Sukses", data.message, "success"); initData(todayStr); btn.innerText = "Simpan Pengaturan"; });
         }
 
         function loadStaffList() {
             const container = document.getElementById('staffListContainer');
             if (!container) return;
-            container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Memuat daftar staff...</div>";
+            container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Memuat daftar pengguna...</div>";
 
-            apiCall({ action: "getUsers", username: localStorage.getItem("loggedInUser") })
+            apiCall({ action: "getUsers" })
             .then(data => {
                 if (data.status === "success") {
                     if (data.users.length === 0) {
-                        container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Belum ada staff.</div>";
+                        container.innerHTML = "<div style='text-align:center; padding:15px; color:gray;'>Belum ada pengguna.</div>";
                         return;
                     }
                     let html = "";
@@ -749,15 +758,22 @@
                             ? `<span style="background:#34c759; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Aktif</span>`
                             : `<span style="background:#ff3b30; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Nonaktif</span>`;
                         
-                        let roleBadge = u.role === "Admin"
-                            ? `<span style="background:#ff9500; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Admin</span>`
-                            : `<span style="background:#007aff; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Staff</span>`;
+                        let roleBadge = "";
+                        if (u.role === "Super Admin") {
+                            roleBadge = `<span style="background:#af52de; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Super Admin</span>`;
+                        } else if (u.role === "Admin") {
+                            roleBadge = `<span style="background:#ff9500; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Admin</span>`;
+                        } else {
+                            roleBadge = `<span style="background:#007aff; color:white; padding:3px 8px; border-radius:10px; font-size:11px; font-weight:600;">Staff</span>`;
+                        }
+
+                        let passDisplay = u.password === "******" ? `<span style="color:#8e8e93; font-style:italic;">****** (Dilindungi)</span>` : `<code>${u.password}</code>`;
 
                         html += `
                             <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #e5e5ea;">
                                 <div>
                                     <div style="font-weight:700; font-size:15px;">${u.fullName || u.username} ${roleBadge} ${statusBadge}</div>
-                                    <div style="font-size:12px; color:var(--ios-gray); margin-top:3px;">User: <b>${u.username}</b> | Pass: <code>${u.password}</code></div>
+                                    <div style="font-size:12px; color:var(--ios-gray); margin-top:3px;">User: <b>${u.username}</b> | Pass: ${passDisplay}</div>
                                 </div>
                                 <button onclick="showEditStaffModal('${u.username}', '${u.fullName || ''}', '${u.role}', '${u.status}', '${u.password}')" class="ios-btn" style="width:auto; padding:6px 12px; font-size:12px; background:#e5e5ea; color:#007aff;">Kelola</button>
                             </div>
@@ -765,7 +781,7 @@
                     });
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = "<div style='text-align:center; padding:15px; color:red;'>Gagal memuat daftar staff.</div>";
+                    container.innerHTML = `<div style='text-align:center; padding:15px; color:red;'>${data.message || 'Gagal memuat daftar pengguna.'}</div>`;
                 }
             }).catch(() => {
                 container.innerHTML = "<div style='text-align:center; padding:15px; color:red;'>Gagal terhubung ke server.</div>";
@@ -773,8 +789,15 @@
         }
 
         function showAddStaffModal() {
+            const myRole = localStorage.getItem("userRole");
+            let roleOptions = `<option value="Staff">Staff (Hanya Input Data)</option>`;
+            if (myRole === "Super Admin") {
+                roleOptions += `<option value="Admin">Admin (Akses Pengaturan & Staff)</option>`;
+                roleOptions += `<option value="Super Admin">Super Admin (Akses Penuh Seluruh Password)</option>`;
+            }
+
             Swal.fire({
-                title: 'Tambah Staff Baru',
+                title: 'Tambah Pengguna Baru',
                 html: `
                     <div style="padding-top: 10px;">
                         <label class="swal-label">Nama Lengkap</label>
@@ -788,14 +811,13 @@
                         
                         <label class="swal-label">Role Akses</label>
                         <select id="swalNewRole" class="swal-custom-input">
-                            <option value="Staff">Staff (Hanya Input Data)</option>
-                            <option value="Admin">Admin (Akses Penuh)</option>
+                            ${roleOptions}
                         </select>
                     </div>
                 `,
                 focusConfirm: false,
                 showCancelButton: true,
-                confirmButtonText: 'Simpan Staff',
+                confirmButtonText: 'Simpan User',
                 cancelButtonText: 'Batal',
                 confirmButtonColor: '#007aff',
                 cancelButtonColor: '#8e8e93',
@@ -819,7 +841,6 @@
                 if (result.isConfirmed) {
                     apiCall({
                         action: "addStaff",
-                        username: localStorage.getItem("loggedInUser"),
                         newFullName: result.value.newFullName,
                         newUsername: result.value.newUsername,
                         newPassword: result.value.newPassword,
@@ -837,6 +858,27 @@
         }
 
         function showEditStaffModal(targetUser, currentFullName, currentRole, currentStatus, currentPass) {
+            const myRole = localStorage.getItem("userRole");
+            let passVal = currentPass === "******" ? "" : currentPass;
+            let passPlaceholder = currentPass === "******" ? "Password Dilindungi (Kosongkan jika tidak diubah)" : "Password Baru";
+
+            let roleSelectHtml = "";
+            if (myRole === "Super Admin") {
+                roleSelectHtml = `
+                    <select id="swalEditRole" class="swal-custom-input">
+                        <option value="Staff" ${currentRole === 'Staff' ? 'selected' : ''}>Staff</option>
+                        <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
+                        <option value="Super Admin" ${currentRole === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
+                    </select>
+                `;
+            } else {
+                roleSelectHtml = `
+                    <select id="swalEditRole" class="swal-custom-input" disabled>
+                        <option value="${currentRole}" selected>${currentRole}</option>
+                    </select>
+                `;
+            }
+
             Swal.fire({
                 title: `Edit Akun: ${targetUser}`,
                 html: `
@@ -845,13 +887,10 @@
                         <input id="swalEditFullName" type="text" class="swal-custom-input" value="${currentFullName}" placeholder="Nama Lengkap User">
                         
                         <label class="swal-label">Ubah Password</label>
-                        <input id="swalEditPass" type="text" class="swal-custom-input" value="${currentPass}" placeholder="Password Baru">
+                        <input id="swalEditPass" type="text" class="swal-custom-input" value="${passVal}" placeholder="${passPlaceholder}">
                         
                         <label class="swal-label">Role Akses</label>
-                        <select id="swalEditRole" class="swal-custom-input">
-                            <option value="Staff" ${currentRole === 'Staff' ? 'selected' : ''}>Staff</option>
-                            <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
-                        </select>
+                        ${roleSelectHtml}
                         
                         <label class="swal-label">Status Akun</label>
                         <select id="swalEditStatus" class="swal-custom-input">
@@ -878,7 +917,6 @@
                 if (result.isConfirmed) {
                     apiCall({
                         action: "updateStaff",
-                        username: localStorage.getItem("loggedInUser"),
                         targetUser: targetUser,
                         newFullName: result.value.newFullName,
                         newPassword: result.value.newPassword,
@@ -921,7 +959,6 @@
             e.preventDefault();
             deferredPrompt = e;
             const installBox = document.getElementById('pwaInstallContainer');
-            // Hanya tampilkan jika user belum login
             if (installBox && !localStorage.getItem("loggedInUser")) {
                 installBox.classList.remove('hidden');
             }
