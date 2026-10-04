@@ -49,7 +49,7 @@
         .ios-btn-warning { background: #ff9500; }
         .ios-btn-success { background: #34c759; }
 
-        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-content: space-around; padding: 12px 0 25px 0; z-index: 1000; }
+        .tab-bar { position: fixed; bottom: 0; width: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); border-top: 1px solid #e5e5ea; display: flex; justify-around; padding: 12px 0 25px 0; z-index: 1000; }
         .tab-item { text-align: center; color: var(--ios-gray); font-size: 11px; font-weight: 500; cursor: pointer; transition: 0.2s; }
         .tab-item i { font-size: 22px; display: block; margin-bottom: 3px; }
         .tab-item.active { color: var(--ios-blue); }
@@ -179,7 +179,10 @@
 
                     <div id="multiChannelForms"></div>
 
-                    <button type="submit" id="btnSubmit" class="ios-btn" style="margin-top: 20px;">Simpan & Kalkulasi</button>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" id="btnCancelEdit" onclick="cancelEdit()" class="ios-btn hidden" style="background: #8e8e93; flex: 1;">Batal Edit</button>
+                        <button type="submit" id="btnSubmit" class="ios-btn" style="flex: 1;">Simpan & Kalkulasi</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -246,10 +249,11 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // PASTIKAN GANTI URL DI BAWAH INI DENGAN URL DEPLOY GOOGLE APPS SCRIPT ANDA
+        // URL DEPLOY GOOGLE APPS SCRIPT
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5eJ6wXBpu-L0lYH0TuG5Noc_ethgq5KrexGkOBA3GbO8QEcoIswrxsnd2VLPPWxzdmA/exec'; 
         
         let currentPajak = 0;
+        let isEditMode = false;
         
         // FUNGSI HELPER UNTUK MENDAPATKAN TANGGAL FORMAT YYYY-MM-DD BERDASARKAN WAKTU LOKAL
         function getLocalDateString(d = new Date()) {
@@ -263,6 +267,102 @@
         let activeChannels = []; 
         let deferredPrompt = null;
 
+        // --- MANAJEMEN DRAF (AUTO-SAVE / PERSISTENCE REFRESH) ---
+        function saveDraft() {
+            if (!localStorage.getItem("loggedInUser")) return;
+            
+            let activeCh = [...activeChannels];
+            let channelData = {};
+            activeCh.forEach(ch => {
+                let safeId = ch.replace(/[^a-zA-Z]/g, '');
+                let trxEl = document.getElementById(`trx_${safeId}`);
+                let salesEl = document.getElementById(`sales_${safeId}`);
+                let netEl = document.getElementById(`net_${safeId}`);
+                if (trxEl) {
+                    channelData[ch] = {
+                        trx: trxEl.value,
+                        sales: salesEl.value,
+                        net: netEl.value
+                    };
+                }
+            });
+
+            let draft = {
+                date: document.getElementById('inputDate').value,
+                isEditMode: isEditMode,
+                disabledDate: document.getElementById('inputDate').disabled,
+                internalView: document.getElementById('internalView').value,
+                customerView: document.getElementById('customerView').value,
+                totalView: document.getElementById('totalView').value,
+                totalChats: document.getElementById('totalChats').value,
+                activeChannels: activeCh,
+                channelData: channelData
+            };
+
+            localStorage.setItem("formDraft", JSON.stringify(draft));
+        }
+
+        function clearDraft() {
+            localStorage.removeItem("formDraft");
+        }
+
+        function restoreDraft() {
+            let draftData = localStorage.getItem("formDraft");
+            if (!draftData) return false;
+
+            try {
+                let draft = JSON.parse(draftData);
+                if (!draft) return false;
+
+                isEditMode = !!draft.isEditMode;
+
+                if (draft.date) {
+                    document.getElementById('inputDate').value = draft.date;
+                }
+                if (draft.disabledDate) {
+                    document.getElementById('inputDate').disabled = true;
+                }
+
+                document.getElementById('internalView').value = draft.internalView || "";
+                document.getElementById('customerView').value = draft.customerView || "";
+                document.getElementById('totalView').value = draft.totalView || "";
+                document.getElementById('totalChats').value = draft.totalChats || "";
+
+                if (draft.activeChannels && Array.isArray(draft.activeChannels)) {
+                    activeChannels = [];
+                    document.querySelectorAll('.ios-chip').forEach(c => c.classList.remove('active'));
+                    document.getElementById('multiChannelForms').innerHTML = "";
+
+                    draft.activeChannels.forEach(ch => {
+                        toggleChannel(ch, true);
+                        let safeId = ch.replace(/[^a-zA-Z]/g, '');
+                        if (draft.channelData && draft.channelData[ch]) {
+                            let cData = draft.channelData[ch];
+                            let trxEl = document.getElementById(`trx_${safeId}`);
+                            let salesEl = document.getElementById(`sales_${safeId}`);
+                            let netEl = document.getElementById(`net_${safeId}`);
+                            if (trxEl) trxEl.value = cData.trx || "";
+                            if (salesEl) salesEl.value = cData.sales || "";
+                            if (netEl) netEl.value = cData.net || "";
+                        }
+                    });
+                }
+
+                if (isEditMode) {
+                    document.getElementById('btnCancelEdit').classList.remove('hidden');
+                    document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
+                } else {
+                    document.getElementById('btnCancelEdit').classList.add('hidden');
+                    document.getElementById('btnSubmit').innerText = "Simpan & Kalkulasi";
+                }
+
+                return true;
+            } catch (e) {
+                console.error("Gagal memulihkan draf:", e);
+                return false;
+            }
+        }
+
         window.onload = () => {
             todayStr = getLocalDateString();
             document.getElementById('inputDate').value = todayStr;
@@ -274,12 +374,10 @@
             const token = localStorage.getItem("sessionToken");
 
             if (user && token) {
-                // Sembunyikan login dan tampilkan loader sesi
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('pwaInstallContainer').classList.add('hidden');
                 document.getElementById('sessionLoading').classList.remove('hidden');
 
-                // 1. Cek Timeout 12 Jam secara Lokal
                 const loginTime = localStorage.getItem("loginTime");
                 const now = new Date().getTime();
                 const twelveHoursInMs = 12 * 60 * 60 * 1000;
@@ -289,7 +387,6 @@
                     return;
                 }
 
-                // 2. Verifikasi Token & Device di Server
                 apiCall({ action: "checkSession", username: user, sessionToken: token })
                 .then(res => {
                     document.getElementById('sessionLoading').classList.add('hidden');
@@ -316,11 +413,24 @@
             document.getElementById('staffName').innerText = fullName;
             document.getElementById('salesInput').value = fullName; 
             
-            // Tampilkan Tab Admin untuk Admin dan Super Admin
             if (role === 'Admin' || role === 'Super Admin') {
                 document.getElementById('navAdmin').classList.remove('hidden');
             }
-            initData(todayStr);
+
+            // Daftarkan listener untuk auto-save draf
+            const salesForm = document.getElementById('salesForm');
+            if (salesForm) {
+                salesForm.addEventListener('input', saveDraft);
+                salesForm.addEventListener('change', saveDraft);
+            }
+
+            // Pulihkan draf jika halaman ter-refresh
+            let hasDraft = restoreDraft();
+            if (!hasDraft) {
+                initData(todayStr);
+            } else {
+                initData(document.getElementById('inputDate').value);
+            }
         }
 
         function alertIOS(title, text, icon="info") {
@@ -338,7 +448,6 @@
         }
 
         function apiCall(payload) {
-            // Otomatis menyertakan data autentikasi untuk pengiriman backend yang aman
             if (!payload.username && localStorage.getItem("loggedInUser")) {
                 payload.username = localStorage.getItem("loggedInUser");
             }
@@ -394,6 +503,7 @@
         }
 
         function handleAutoLogout(msg) {
+            clearDraft();
             localStorage.clear();
             Swal.fire({ title: 'Sesi Berakhir', text: msg, icon: 'warning', confirmButtonColor: '#007aff', allowOutsideClick: false }).then(() => {
                 location.reload();
@@ -406,9 +516,17 @@
                     title: 'Logout', text: "Yakin ingin keluar?", icon: 'warning',
                     showCancelButton: true, confirmButtonColor: '#ff3b30', cancelButtonColor: '#8e8e93',
                     confirmButtonText: 'Keluar'
-                }).then((result) => { if (result.isConfirmed) { localStorage.clear(); location.reload(); } });
+                }).then((result) => { 
+                    if (result.isConfirmed) { 
+                        clearDraft();
+                        localStorage.clear(); 
+                        location.reload(); 
+                    } 
+                });
             } else {
-                localStorage.clear(); location.reload();
+                clearDraft();
+                localStorage.clear(); 
+                location.reload();
             }
         }
 
@@ -425,6 +543,7 @@
             let iv = getInt(document.getElementById('internalView').value);
             let cv = getInt(document.getElementById('customerView').value);
             document.getElementById('totalView').value = (iv + cv).toLocaleString('id-ID');
+            saveDraft();
         }
 
         function initData(selectedDate) {
@@ -463,27 +582,34 @@
                             document.getElementById('salesInput').value = currentName;
                         } else {
                             document.getElementById('salesInput').value = currentName;
+                            saveDraft();
                         }
                     });
                 } else {
                     document.getElementById('salesInput').value = currentName;
+                    saveDraft();
                 }
             });
         }
 
-        function toggleChannel(channel) {
+        function toggleChannel(channel, isRestoring = false) {
             let chips = document.querySelectorAll('.ios-chip');
             let chip;
             chips.forEach(c => { if(c.innerText.includes(channel)) chip = c; });
 
             if (activeChannels.includes(channel)) {
                 activeChannels = activeChannels.filter(c => c !== channel);
-                chip.classList.remove('active');
-                document.getElementById('form_' + channel.replace(/[^a-zA-Z]/g, '')).remove();
+                if(chip) chip.classList.remove('active');
+                let formEl = document.getElementById('form_' + channel.replace(/[^a-zA-Z]/g, ''));
+                if(formEl) formEl.remove();
             } else {
                 activeChannels.push(channel);
-                chip.classList.add('active');
+                if(chip) chip.classList.add('active');
                 renderChannelForm(channel);
+            }
+
+            if (!isRestoring) {
+                saveDraft();
             }
         }
 
@@ -518,6 +644,7 @@
             let sales = getInt(document.getElementById(`sales_${safeId}`).value);
             let net = sales / (1 + (currentPajak / 100));
             document.getElementById(`net_${safeId}`).value = Math.round(net).toLocaleString('id-ID');
+            saveDraft();
         }
 
         function submitData(e) {
@@ -540,6 +667,7 @@
 
         function executeSubmit(confirmReplace) {
             let btn = document.getElementById('btnSubmit');
+            let originalText = btn.innerText;
             btn.innerText = "Memproses..."; btn.disabled = true;
 
             let channelData = {};
@@ -580,22 +708,22 @@
                         if(result.isConfirmed) {
                             executeSubmit(true);
                         } else {
-                            btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                            btn.innerText = originalText; btn.disabled = false;
                         }
                     });
                 } else if (data.status === "success") {
                     alertIOS("Sukses", data.message, "success");
-                    btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                    clearDraft(); // Hapus draf setelah data berhasil disimpan
                     todayStr = getLocalDateString();
                     resetForm();
                     document.getElementById('inputDate').value = todayStr;
                 } else {
                     alertIOS("Error", data.message || "Terjadi Kesalahan", "error");
-                    btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false;
+                    btn.innerText = originalText; btn.disabled = false;
                 }
             }).catch(() => { 
                 alertIOS("Error", "Gagal menghubungi server", "error"); 
-                btn.innerText = "Simpan & Kalkulasi"; btn.disabled = false; 
+                btn.innerText = originalText; btn.disabled = false; 
             });
         }
 
@@ -697,9 +825,7 @@
                                     alertIOS("Terhapus", d.message, "success");
                                     loadHistory();
                                     if(document.getElementById('inputDate').value === dateStr) { 
-                                        resetForm(); 
-                                        todayStr = getLocalDateString();
-                                        document.getElementById('inputDate').value = todayStr;
+                                        cancelEdit();
                                     }
                                 } else {
                                     alertIOS("Gagal", d.message, "error");
@@ -715,6 +841,10 @@
             let savedDate = rowData[1] || document.getElementById('inputDate').value;
             resetForm();
             
+            isEditMode = true;
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+            document.getElementById('btnSubmit').innerText = "Simpan Perubahan";
+
             // Set tanggal dan KUNCI input tanggal agar tidak dapat diedit saat mode edit
             let inputDateEl = document.getElementById('inputDate');
             inputDateEl.value = savedDate;
@@ -730,13 +860,23 @@
             for (let ch in cMap) {
                 let idx = cMap[ch];
                 if (rowData[idx] > 0 || rowData[idx+1] > 0) { 
-                    toggleChannel(ch); 
+                    toggleChannel(ch, true); 
                     let safeId = ch.replace(/[^a-zA-Z]/g, '');
                     document.getElementById(`trx_${safeId}`).value = (rowData[idx]||0).toLocaleString('id-ID');
                     document.getElementById(`sales_${safeId}`).value = (rowData[idx+1]||0).toLocaleString('id-ID');
                     document.getElementById(`net_${safeId}`).value = (rowData[idx+2]||0).toLocaleString('id-ID');
                 }
             }
+
+            saveDraft();
+        }
+
+        function cancelEdit() {
+            clearDraft();
+            resetForm();
+            todayStr = getLocalDateString();
+            document.getElementById('inputDate').value = todayStr;
+            document.getElementById('salesInput').value = localStorage.getItem("userFullName") || localStorage.getItem("loggedInUser");
         }
 
         function resetForm() {
@@ -752,6 +892,11 @@
             // Buka kunci input tanggal kembali
             let inputDateEl = document.getElementById('inputDate');
             inputDateEl.disabled = false;
+
+            isEditMode = false;
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+            document.getElementById('btnSubmit').innerText = "Simpan & Kalkulasi";
+            document.getElementById('btnSubmit').disabled = false;
         }
 
         function saveAdmin() {
