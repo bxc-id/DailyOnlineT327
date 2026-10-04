@@ -811,14 +811,24 @@
             
             let cMap = { "TAB": 8, "Rupa-Rupa (ODI)": 11, "Shopee (ODIS)": 14, "Storemode (ODIR)": 17, "Tokopedia (ODIT)": 20, "TikTok (ODIK)": 23, "Grab Mart (GM)": 26, "Project": 29 };
             
+            let totalTrx = 0; // Menampung jumlah semua transaksi
+
             for (let ch in cMap) {
                 let idx = cMap[ch];
-                if (rowData[idx] > 0 || rowData[idx+1] > 0) {
-                    htmlContent += `<b>➤ ${ch}</b><br>Trx: ${(rowData[idx]||0).toLocaleString('id-ID')} | Sales: Rp ${(rowData[idx+1]||0).toLocaleString('id-ID')}<br><br>`;
+                let chTrx = rowData[idx] || 0;
+                let chSales = rowData[idx+1] || 0;
+
+                totalTrx += chTrx; // Tambahkan trx tiap channel ke total
+
+                if (chTrx > 0 || chSales > 0) {
+                    htmlContent += `<b>➤ ${ch}</b><br>Trx: ${chTrx.toLocaleString('id-ID')} | Sales: Rp ${chSales.toLocaleString('id-ID')}<br><br>`;
                 }
             }
             
-            htmlContent += `<hr style="margin:10px 0;"><b>Daily Sales:</b> Rp ${(rowData[33]||0).toLocaleString('id-ID')}<br>`;
+            // Tampilan Kalkulasi Total di bagian bawah
+            htmlContent += `<hr style="margin:10px 0;">`;
+            htmlContent += `<b>Total Trx:</b> ${totalTrx.toLocaleString('id-ID')}<br>`;
+            htmlContent += `<b>Daily Sales:</b> Rp ${(rowData[33]||0).toLocaleString('id-ID')}<br>`;
             htmlContent += `<b>Daily Net Sales:</b> Rp ${(rowData[34]||0).toLocaleString('id-ID')}`;
             htmlContent += `</div>`;
 
