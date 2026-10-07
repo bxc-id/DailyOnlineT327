@@ -610,15 +610,22 @@
             setTimeout(() => { icon.classList.remove('spin'); }, 600);
         }
 
+        /* --- FUNGSI LOGIN DENGAN NOTIFIKASI POPUP DIPERBAIKI --- */
         function login() {
-            const u = document.getElementById('loginUser').value;
-            const p = document.getElementById('loginPass').value;
-            if(!u || !p) return;
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+
+            // Validasi jika kolom username atau password masih kosong
+            if (!u || !p) {
+                alertIOS("Peringatan", "Username dan Password wajib diisi!", "warning");
+                return;
+            }
+
             document.getElementById('btnLogin').innerText = 'Loading...';
 
             apiCall({ action: "login", username: u, password: p })
             .then(data => {
-                if (data.status === "success") {
+                if (data && data.status === "success") {
                     localStorage.setItem("loggedInUser", data.user);
                     localStorage.setItem("userRole", data.role);
                     localStorage.setItem("userFullName", data.fullName);
@@ -626,10 +633,15 @@
                     localStorage.setItem("loginTime", new Date().getTime().toString());
                     location.reload();
                 } else {
-                    alertIOS("Gagal Login", data.message, "error");
+                    // Tampilkan Popup jika password / username salah
+                    let errorMsg = (data && data.message) ? data.message : "Username atau Password salah!";
+                    alertIOS("Gagal Login", errorMsg, "error");
                     document.getElementById('btnLogin').innerText = 'Masuk';
                 }
-            }).catch(e => { alertIOS("Error", "Gagal menghubungi server", "error"); document.getElementById('btnLogin').innerText = 'Masuk'; });
+            }).catch(e => { 
+                alertIOS("Error", "Gagal menghubungi server. Periksa koneksi internet Anda.", "error"); 
+                document.getElementById('btnLogin').innerText = 'Masuk'; 
+            });
         }
 
         function handleAutoLogout(msg) {
